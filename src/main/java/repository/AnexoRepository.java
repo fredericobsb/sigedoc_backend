@@ -14,4 +14,3 @@ public interface AnexoRepository extends JpaRepository<Anexo, Long> {
 	@Query(value = "select u.id, u.matricula, u.username, a.nome_documento, a.data_inclusao, a.data_atualizacao from Users u inner join anexo a on u.matricula = a.matricula", nativeQuery=true)
 	public List<Object[]> listarUsuariosComDocumentos();
 }
-

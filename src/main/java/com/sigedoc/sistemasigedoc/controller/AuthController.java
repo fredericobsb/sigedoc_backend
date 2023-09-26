@@ -1,6 +1,5 @@
 package com.sigedoc.sistemasigedoc.controller;
 
-
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.SQLException;
@@ -13,10 +12,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import javax.sql.rowset.serial.SerialBlob;
 import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,15 +33,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-
 import com.sigedoc.sistemasigedoc.payload.request.LoginRequest;
 import com.sigedoc.sistemasigedoc.payload.request.SignupRequest;
 import com.sigedoc.sistemasigedoc.payload.response.JwtResponse;
 import com.sigedoc.sistemasigedoc.payload.response.MessageResponse;
 import com.sigedoc.sistemasigedoc.security.jwt.JwtUtils;
 import com.sigedoc.sistemasigedoc.security.services.UserDetailsImpl;
-
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import models.Anexo;
 import models.CorpoDoAnexoDTO;
 import models.ERole;
@@ -55,6 +51,7 @@ import repository.AnexoRepository;
 import repository.RoleRepository;
 import repository.UserRepository;
 
+@Api(tags="Usuários")
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auth")
@@ -78,6 +75,7 @@ public class AuthController {
   JwtUtils jwtUtils;
 
   @PostMapping("/signin")
+  @ApiOperation(value="Login de Usuário")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
 
     Authentication authentication = authenticationManager.authenticate(
@@ -99,6 +97,7 @@ public class AuthController {
   }
 
   @PostMapping("/signup")
+  @ApiOperation(value="Cadastro de Usuário")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
     if (userRepository.existsByUsername(signUpRequest.getUsername())) {
       return ResponseEntity

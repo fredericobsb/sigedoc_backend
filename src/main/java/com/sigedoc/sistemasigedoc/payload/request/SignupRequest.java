@@ -20,7 +20,7 @@ public class SignupRequest {
 
   private Set<String> role;
 
-  @NotBlank
+  //@NotBlank
   @Size(min = 6, max = 40)
   private String password;
   

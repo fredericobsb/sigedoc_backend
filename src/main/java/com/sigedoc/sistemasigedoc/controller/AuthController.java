@@ -1,6 +1,9 @@
 package com.sigedoc.sistemasigedoc.controller;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.security.SecureRandom;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -33,12 +36,15 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.sigedoc.sistemasigedoc.payload.request.LoginRequest;
 import com.sigedoc.sistemasigedoc.payload.request.SignupRequest;
 import com.sigedoc.sistemasigedoc.payload.response.JwtResponse;
 import com.sigedoc.sistemasigedoc.payload.response.MessageResponse;
 import com.sigedoc.sistemasigedoc.security.jwt.JwtUtils;
+import com.sigedoc.sistemasigedoc.security.services.EmailService;
 import com.sigedoc.sistemasigedoc.security.services.UserDetailsImpl;
+
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import models.Anexo;
@@ -50,6 +56,7 @@ import models.UsuarioDocumentoDto;
 import repository.AnexoRepository;
 import repository.RoleRepository;
 import repository.UserRepository;
+
 
 @Api(tags="Usuários")
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -73,7 +80,10 @@ public class AuthController {
 
   @Autowired
   JwtUtils jwtUtils;
-
+  
+  @Autowired
+  EmailService emailService;
+  
   @PostMapping("/signin")
   @ApiOperation(value="Login de Usuário")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -151,6 +161,52 @@ public class AuthController {
     userRepository.save(user);
 
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+  }
+  
+  //cadastro de usuario
+  @PostMapping("/cadUser")
+  @ApiOperation(value="Cadastro de Usuário padrão")
+  public ResponseEntity<?> cadstrarUsuario(@Valid @RequestBody SignupRequest signUpRequest) {
+	  StringBuilder sb = null;
+	  if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+      return ResponseEntity
+          .badRequest()
+          .body(new MessageResponse("Error: Username is already taken!"));
+    }
+
+    if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+      return ResponseEntity
+          .badRequest()
+          .body(new MessageResponse("Error: Email is already in use!"));
+    }
+
+    // Create new user's account
+    int len = 10;
+    // intervalo ASCII – alfanumérico (0-9, a-z, A-Z)
+    final String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    SecureRandom random = new SecureRandom();
+    sb = new StringBuilder();
+    // cada iteração do loop escolhe aleatoriamente um caractere do dado
+    // intervalo ASCII e o anexa à instância `StringBuilder`
+    for (int i = 0; i < len; i++)
+    {
+        int randomIndex = random.nextInt(chars.length());
+        sb.append(chars.charAt(randomIndex));
+    }
+    User user = new User(signUpRequest.getUsername(), 
+               signUpRequest.getEmail(),
+               encoder.encode(sb.toString()),
+               signUpRequest.getMatricula());
+
+    Set<Role> roles = new HashSet<>();
+    Role usuarioPadraoRole = new Role();
+    usuarioPadraoRole.setName(ERole.ROLE_USER);
+    usuarioPadraoRole.setId(1);
+    roles.add(usuarioPadraoRole);
+    user.setRoles(roles);
+    userRepository.save(user);
+    enviarEmail(user, sb.toString());
+    return ResponseEntity.ok(new MessageResponse("Usuário " + user.getUsername() + " cadastrado com sucesso! Um email foi enviado com a senha para acesso!"));
   }
   
   @RequestMapping(path="/anexo", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
@@ -268,5 +324,11 @@ public class AuthController {
 	  }else {
 		  return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 	  }
+  }
+  
+  private void enviarEmail(User user, String senha) {
+	  String assunto = "SIGEDOC - Aqui está a senha para voce acessar o sistema";
+	  String mensagem = "Voce se cadastrou no SIGEDOC - Sistema de Gerenciamento de Documentos. Seu login é " + user.getUsername() + "e sua senha de acesso é: " + senha;
+	  emailService.sendEmail(user.getEmail(), assunto, mensagem);
   }
 }
